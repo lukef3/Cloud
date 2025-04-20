@@ -111,13 +111,6 @@ export default {
 </script>
 
 <style scoped>
-
-body {
-  background-color: #121212;
-  color: #e0e0e0;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-}
-
 .container {
   max-width: 600px;
   margin: 2rem auto;
@@ -125,11 +118,6 @@ body {
   padding: 4rem;
   border-radius: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-}
-
-h1, h2 {
-  text-align: center;
-  color: #ffffff;
 }
 
 input[type="file"] {
@@ -142,28 +130,6 @@ input[type="file"] {
   border-radius: 4px;
   max-width: 100%;
   box-sizing: border-box;
-}
-
-button {
-  display: block;
-  margin: 1rem auto;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  background: #6200ee;
-  color: #ffffff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-button:disabled {
-  background: #555555;
-  cursor: not-allowed;
-}
-
-button:hover:not(:disabled) {
-  background: #3700b3;
 }
 
 .uploaded-image {
