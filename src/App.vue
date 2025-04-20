@@ -51,12 +51,12 @@ export default {
       try {
         const pathGetUrl = '/getUploadUrl';
         const getUrlParams = {
-          queryStringParameters: {
-            fileName: this.selectedFile.name
-          }
+              queryParams: {
+              fileName: this.selectedFile.name
+            }
         };
         if (this.selectedFile.type) {
-          getUrlParams.queryStringParameters.contentType = this.selectedFile.type;
+          getUrlParams.queryParams.contentType = this.selectedFile.type;
         }
         const getUrlRequest = get({
           apiName: api,
