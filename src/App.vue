@@ -2,116 +2,145 @@
   <authenticator>
     <template v-slot="{ signOut }">
       <div class="container">
-        <h1>Allergen-AI</h1>
-        <input type="file" @change="handleFileUpload" accept="image/*" />
-        <button @click="predictAllergen" :disabled="!selectedFile">
-          Predict Allergen
+        <h1 class="title">Allergen‑AI</h1>
+        <input
+            type="file"
+            class="file-input"
+            @change="handleFileUpload"
+            accept="image/*"
+        />
+        <button
+            class="primary-btn"
+            @click="predictAllergen"
+            :disabled="!selectedFile || loading"
+        >
+          {{ loading ? statusMessage : 'Predict Allergen' }}
         </button>
-        <div v-if="prediction" class="result">
-          <img v-if="imageUrl" :src="imageUrl" alt="Uploaded Scan" class="uploaded-image" />
-          <h2>Prediction:</h2>
-          <p>{{ prediction }}</p>
+
+        <div v-if="imageUrl" class="preview">
+          <img :src="imageUrl" alt="Uploaded Scan" class="uploaded-image" />
         </div>
+
+        <div v-if="predictions.length" class="result">
+          <h2>Predicted Allergens</h2>
+          <table class="pred-table">
+            <thead>
+            <tr>
+              <th>Allergen</th>
+              <th>Confidence</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="item in predictions" :key="item.name">
+              <td class="allergen-name">{{ item.name }}</td>
+              <td class="confidence-cell">
+                <div class="confidence-bar">
+                  <div
+                      class="confidence-fill"
+                      :style="{
+                        width: (item.confidence * 100) + '%',
+                        backgroundColor: confidenceColor(item.confidence)
+                      }"
+                  />
+                </div>
+                <span class="confidence-text">
+                    {{ (item.confidence * 100).toFixed(1) }}%
+                  </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="infoMessage" class="error">{{ infoMessage }}</div>
+
+        <button class="signout-btn" @click="signOut">Sign Out</button>
       </div>
-      <button @click="signOut">Sign Out</button>
     </template>
   </authenticator>
 </template>
 
 <script>
-import { Authenticator } from "@aws-amplify/ui-vue";
-import "@aws-amplify/ui-vue/styles.css";
+import { Authenticator } from '@aws-amplify/ui-vue';
+import '@aws-amplify/ui-vue/styles.css';
 import { get, post } from '@aws-amplify/api';
+
 export default {
-  name: "App",
-  components: {Authenticator},
+  name: 'App',
+  components: { Authenticator },
   data() {
     return {
       selectedFile: null,
       imageUrl: null,
-      prediction: "",
+      predictions: [],
+      loading: false,
+      statusMessage: '',
+      infoMessage: ''
     };
   },
   methods: {
-    handleFileUpload(event) {
-      this.selectedFile = event.target.files[0];
-      if (this.selectedFile) {
-        this.imageUrl = URL.createObjectURL(this.selectedFile);
-      }
-      this.prediction = "";
+    handleFileUpload(e) {
+      this.selectedFile = e.target.files[0] ?? null;
+      this.imageUrl = this.selectedFile ? URL.createObjectURL(this.selectedFile) : null;
+      this.predictions = [];
+      this.infoMessage = '';
+    },
+    confidenceColor(conf) {
+      const hue = conf * 110;
+      return `hsl(${hue}, 70%, 50%)`;
     },
     async predictAllergen() {
-      if (!this.selectedFile) {
-        this.prediction = "Please select a file first.";
-        return;
-      }
-      this.prediction = "Processing...";
-      const api = "allergenApi";
+      if (!this.selectedFile) return;
+
+      this.loading = true;
+      this.statusMessage = 'Uploading…';
+      this.infoMessage = '';
+
+      const api = 'allergenApi';
 
       try {
-        const pathGetUrl = '/getUploadUrl';
-        const getUrlParams = {
-              queryParams: {
-              fileName: this.selectedFile.name
+        // get presigned url
+        const { body } = await get({
+          apiName: api,
+          path: '/getUploadUrl',
+          options: {
+            queryParams: {
+              fileName: this.selectedFile.name,
+              ...(this.selectedFile.type && { contentType: this.selectedFile.type })
             }
-        };
-        if (this.selectedFile.type) {
-          getUrlParams.queryParams.contentType = this.selectedFile.type;
-        }
-        const getUrlRequest = get({
-          apiName: api,
-          path: pathGetUrl,
-          options: getUrlParams
-        });
-
-        const { body } = await getUrlRequest.response;
-        const uploadConfig = await body.json();
-
-        const { uploadUrl, key: s3ObjectKey } = uploadConfig;
-
-        if (!uploadUrl || !s3ObjectKey) {
-          throw new Error("Server did not provide a valid upload URL or key.");
-        }
-
-        this.prediction = "Uploading image...";
-        const s3Response = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: this.selectedFile
-        });
-
-        if (!s3Response.ok) {
-          const errorText = await s3Response.text().catch(() => "Could not read S3 error response");
-          throw new Error(`S3 Upload Failed (${s3Response.status}): ${s3Response.statusText}. ${errorText}`);
-        }
-
-        this.prediction = "Analyzing image...";
-        const pathPredict = '/predict';
-        const predictParams = {
-          body: {
-            key: s3ObjectKey
-          },
-          headers: { 'Content-Type': 'application/json' }
-        };
-
-        const predictionRequest = post({
-          apiName: api,
-          path: pathPredict,
-          options: predictParams
-        });
-        const { body: postBody } = await predictionRequest.response;
-        const predictionResult = await postBody.json();
-
-        if (predictionResult && predictionResult.prediction) {
-          if (typeof predictionResult.prediction === 'object') {
-            this.prediction = JSON.stringify(predictionResult.prediction, null, 2);
-          } else {
-            this.prediction = "Prediction data not found in the response.";
           }
-        }
+        }).response;
+        const { uploadUrl, key: s3ObjectKey } = await body.json();
 
-      } catch (error) {
-        console.error("Error during prediction:", error);
-        this.prediction = "Error occurred during prediction.";
+        // upload image to s3 bucket
+        await fetch(uploadUrl, { method: 'PUT', body: this.selectedFile });
+
+        this.statusMessage = 'Analysing…';
+        // call prediction endpoint
+        const { body: postBody } = await post({
+          apiName: api,
+          path: '/predict',
+          options: {
+            body: { key: s3ObjectKey },
+            headers: { 'Content-Type': 'application/json' }
+          }
+        }).response;
+
+        const predictionResult = await postBody.json();
+        const raw = predictionResult.prediction;
+
+        this.predictions = Object.entries(raw)
+            .map(([name, confidence]) => ({ name, confidence }))
+            .sort((a, b) => b.confidence - a.confidence);
+
+        if (!this.predictions.length) {
+          this.infoMessage = 'No allergens detected.';
+        }
+      } catch (err) {
+        console.error(err);
+        this.infoMessage = 'Something went wrong. Please try again.';
+      } finally {
+        this.loading = false;
       }
     }
   }
@@ -120,40 +149,78 @@ export default {
 
 <style scoped>
 .container {
-  max-width: 600px;
+  max-width: 640px;
   margin: 2rem auto;
   background: #1e1e1e;
-  padding: 4rem;
-  border-radius: 20px;
+  padding: 2.5rem;
+  border-radius: 1.25rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-}
-
-input[type="file"] {
-  display: block;
-  margin: 1rem auto;
-  padding: 0.5rem;
-  background: #333333;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   color: #e0e0e0;
-  border: none;
-  border-radius: 4px;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
-.uploaded-image {
+.title {
+  text-align: center;
+  margin: 0;
+}
+
+.file-input {
+  background: #333;
+  color: #e0e0e0;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.preview img {
   display: block;
-  margin: 0 auto 1.5rem auto;
+  margin: 0 auto;
   max-width: 100%;
-  max-height: 400px;
   border-radius: 8px;
   border: 1px solid #444;
 }
 
-.result {
-  margin-top: 2rem;
-  background: #2c2c2c;
-  padding: 1rem;
-  border-radius: 4px;
-  color: #e0e0e0;
+.pred-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.pred-table th,
+.pred-table td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #444;
+  text-align: left;
+}
+
+.error {
+  color: #047c94;
+  text-align: center;
+}
+
+.confidence-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.confidence-bar {
+  flex: 1;
+  background: #333;
+  border-radius: 0.3rem;
+  height: 0.6rem;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.confidence-text {
+  min-width: 3.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 </style>
