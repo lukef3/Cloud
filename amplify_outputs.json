@@ -106,15 +106,9 @@
       "nonModels": {}
     }
   },
-  "api": {
-    "Rest": {
-      "endpoints": [{
-        "name": "allergenApi",
-        "endpoint": "https://kw5rskam11.execute-api.eu-west-1.amazonaws.com/dev",
-        "region": "eu-west-1",
-        "authorization_type": "AMAZON_COGNITO_USER_POOLS"
-      }]
-    }
+  "custom": {
+    "description": "Outputs generated from backend.addOutput({ custom: <config> })",
+    "type": "object"
   },
   "version": "1.3"
 }

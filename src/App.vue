@@ -58,11 +58,14 @@ export default {
         if (this.selectedFile.type) {
           getUrlParams.queryStringParameters.contentType = this.selectedFile.type;
         }
-        const uploadConfig = get({
+        const getUrlRequest = get({
           apiName: api,
           path: pathGetUrl,
           options: getUrlParams
         });
+
+        const { body } = await getUrlRequest.response;
+        const uploadConfig = await body.json();
 
         const { uploadUrl, key: s3ObjectKey } = uploadConfig;
 
@@ -90,11 +93,13 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         };
 
-        const predictionResult = post({
+        const predictionRequest = post({
           apiName: api,
           path: pathPredict,
           options: predictParams
         });
+        const { body: postBody } = await predictionRequest.response;
+        const predictionResult = await postBody.json();
 
         if (predictionResult && predictionResult.prediction) {
           if (typeof predictionResult.prediction === 'object') {
