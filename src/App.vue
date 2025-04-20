@@ -1,16 +1,21 @@
 <template>
-  <div class="container">
-    <h1>Allergen-AI</h1>
-    <input type="file" @change="handleFileUpload" accept="image/*" />
-    <button @click="predictAllergen" :disabled="!selectedFile">
-      Predict Allergen
-    </button>
-    <div v-if="prediction" class="result">
-      <img v-if="imageUrl" :src="imageUrl" alt="Uploaded Scan" class="uploaded-image" />
-      <h2>Prediction:</h2>
-      <p>{{ prediction }}</p>
-    </div>
-  </div>
+  <authenticator>
+    <template v-slot="{ signOut }">
+      <div class="container">
+        <h1>Allergen-AI</h1>
+        <input type="file" @change="handleFileUpload" accept="image/*" />
+        <button @click="predictAllergen" :disabled="!selectedFile">
+          Predict Allergen
+        </button>
+        <div v-if="prediction" class="result">
+          <img v-if="imageUrl" :src="imageUrl" alt="Uploaded Scan" class="uploaded-image" />
+          <h2>Prediction:</h2>
+          <p>{{ prediction }}</p>
+        </div>
+      </div>
+      <button @click="signOut">Sign Out</button>
+    </template>
+  </authenticator>
 </template>
 
 <script>
