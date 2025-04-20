@@ -21,7 +21,7 @@
 <script>
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
-import { API } from 'aws-amplify'
+import { get, post } from '@aws-amplify/api';
 export default {
   name: "App",
   components: {Authenticator},
@@ -58,7 +58,7 @@ export default {
         if (this.selectedFile.type) {
           getUrlParams.queryStringParameters.contentType = this.selectedFile.type;
         }
-        const uploadConfig = await API.get(api, pathGetUrl, getUrlParams);
+        const uploadConfig = await get(api, pathGetUrl, getUrlParams);
 
         const { uploadUrl, key: s3ObjectKey } = uploadConfig;
 
@@ -86,7 +86,7 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         };
 
-        const predictionResult = await API.post(api, pathPredict, predictParams);
+        const predictionResult = await post(api, pathPredict, predictParams);
 
         if (predictionResult && predictionResult.prediction) {
           if (typeof predictionResult.prediction === 'object') {
