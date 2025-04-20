@@ -19,8 +19,11 @@
 </template>
 
 <script>
+import { Authenticator } from "@aws-amplify/ui-vue";
+import "@aws-amplify/ui-vue/styles.css";
 export default {
   name: "App",
+  components: {Authenticator},
   data() {
     return {
       selectedFile: null,
