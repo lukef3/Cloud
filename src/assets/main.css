@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  background: linear-gradient(180deg, rgb(18, 18, 18), rgb(18, 18, 18));
+  background: radial-gradient(circle, rgb(0, 32, 39) 0%, rgb(0, 0, 0) 100%);
   display: flex;
   font-family: 'Helvetica Neue', Arial, sans-serif;
   height: 100vh;
@@ -20,7 +20,7 @@ button {
   margin: 1rem auto;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  background: #6200ee;
+  background: #047c94;
   color: #ffffff;
   border: none;
   border-radius: 4px;
@@ -32,10 +32,10 @@ button:disabled {
   cursor: not-allowed;
 }
 button:hover:not(:disabled) {
-  background: #3700b3;
+  background: #047c94;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #013d49;
 }
 button:focus,
 button:focus-visible {

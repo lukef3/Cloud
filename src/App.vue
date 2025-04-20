@@ -21,6 +21,7 @@
 <script>
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
+import { API } from 'aws-amplify'
 export default {
   name: "App",
   components: {Authenticator},
@@ -29,8 +30,6 @@ export default {
       selectedFile: null,
       imageUrl: null,
       prediction: "",
-      apiEndpointPredict: "https://kw5rskam11.execute-api.eu-west-1.amazonaws.com/dev/predict",
-      apiEndpointGetUrl: "https://kw5rskam11.execute-api.eu-west-1.amazonaws.com/dev/getUploadUrl"
     };
   },
   methods: {
@@ -47,21 +46,20 @@ export default {
         return;
       }
       this.prediction = "Processing...";
+      const api = "allergenApi";
 
       try {
-        const getUrlEndpoint = new URL(this.apiEndpointGetUrl);
-        getUrlEndpoint.searchParams.append('fileName', this.selectedFile.name);
+        const pathGetUrl = '/getUploadUrl';
+        const getUrlParams = {
+          queryStringParameters: {
+            fileName: this.selectedFile.name
+          }
+        };
         if (this.selectedFile.type) {
-          getUrlEndpoint.searchParams.append('contentType', this.selectedFile.type);
+          getUrlParams.queryStringParameters.contentType = this.selectedFile.type;
         }
+        const uploadConfig = await API.get(api, pathGetUrl, getUrlParams);
 
-        const configResponse = await fetch(getUrlEndpoint.toString(), { method: 'GET' });
-
-        if (!configResponse.ok) {
-          const errorData = await configResponse.json().catch(() => ({}));
-          throw new Error(`Failed to get upload URL (${configResponse.status}): ${errorData.error || configResponse.statusText}`);
-        }
-        const uploadConfig = await configResponse.json();
         const { uploadUrl, key: s3ObjectKey } = uploadConfig;
 
         if (!uploadUrl || !s3ObjectKey) {
@@ -78,20 +76,17 @@ export default {
           const errorText = await s3Response.text().catch(() => "Could not read S3 error response");
           throw new Error(`S3 Upload Failed (${s3Response.status}): ${s3Response.statusText}. ${errorText}`);
         }
+
         this.prediction = "Analyzing image...";
+        const pathPredict = '/predict';
+        const predictParams = {
+          body: {
+            key: s3ObjectKey
+          },
+          headers: { 'Content-Type': 'application/json' }
+        };
 
-        const predictResponse = await fetch(this.apiEndpointPredict, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: s3ObjectKey }),
-        });
-
-        if (!predictResponse.ok) {
-          const errorData = await predictResponse.json().catch(() => ({}));
-          throw new Error(`Prediction API Error (${predictResponse.status}): ${errorData.error || predictResponse.statusText}`);
-        }
-
-        const predictionResult = await predictResponse.json();
+        const predictionResult = await API.post(api, pathPredict, predictParams);
 
         if (predictionResult && predictionResult.prediction) {
           if (typeof predictionResult.prediction === 'object') {
