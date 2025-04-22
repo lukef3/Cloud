@@ -138,7 +138,7 @@ export default {
         }
       } catch (err) {
         console.error(err);
-        this.infoMessage = 'Something went wrong. Please try again.';
+        this.infoMessage = 'Something went wrong. Please try again. (AI-Model endpoint may have been taken down to avoid costs 🙂)';
       } finally {
         this.loading = false;
       }
